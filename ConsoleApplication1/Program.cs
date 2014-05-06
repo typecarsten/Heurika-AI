@@ -20,16 +20,70 @@ namespace ConsoleApplication1
             private static Road goal;
             //interesting roads that can be part of the rute
             private static ObservableCollection<Road> openlist = new ObservableCollection<Road>();
+            private static ObservableCollection<Road> closedList = new ObservableCollection<Road>();
+       
         static void Main(string[] args)
         {
             start_point = new Road("start",new Point(35, 80), new Point(35, 80));
             goal = new Road("goal",new Point(45,70),new Point(45,70));
-            Road currentRoad = null;
+            //Road currentRoad = null;
             openlist.Add(start_point);
+
+            while (true) 
+            {
+                Road currentRoad = openlist.First();
+                openlist.Remove(currentRoad);
+                closedList.Remove(currentRoad);
+                foreach (Road road in theMap)
+                {
+                    if(currentRoad.Endpoint == road.StartingPoint)
+                    {
+                        foreach (Road openListRoad in openlist)
+                        {
+                            if (road.StartingPoint == openListRoad.StartingPoint && road.Endpoint == openListRoad.Endpoint)
+                            {
+                                if (openListRoad.G > road.G)
+                                {
+                                    openListRoad.ParentRoad = currentRoad;
+                                    calculateGHF(openListRoad);
+                                    //resrot the openlist
+                                }
+                            }
+                             else
+                             {
+                                road.ParentRoad = currentRoad;
+                                Road tempRoad = calculateGHF(currentRoad);
+                                road.G = tempRoad.G;
+                                road.H = tempRoad.H;
+                                road.F = tempRoad.F;
+                                openlist.Add(road);
+                                //resort list
+                        }
+                        }
+                        
+                    }
+                }
+            }
+
+
+
+            foreach (Road road in theMap)
+            {
+                if (start_point.Endpoint == road.StartingPoint)
+                {
+                    road.ParentRoad = start_point;
+                }
+            }
+            openlist.Clear();
+            closedList.Add(start_point);
+
             //The A* algorithm
             while (currentRoad.StreetName != "goal")
             {
+                //sort openList by f cost
                 currentRoad = openlist.First();
+                openlist.Remove(currentRoad);
+                closedList.Add(currentRoad);
                 exploreMap(currentRoad);
                 openlist.Remove(currentRoad);
 
@@ -60,11 +114,13 @@ namespace ConsoleApplication1
             }
         }
 
-        private static void calculateGHF(Road currentRoad, Road tempRoad)
+        private static Road calculateGHF(Road currentRoad)
         {
+            Road tempRoad = new Road();
             tempRoad.H = heuristic(currentRoad, goal);
             tempRoad.G = currentRoad.ParentRoad.G + roadcost(currentRoad);
             tempRoad.F = fCost(tempRoad);
+            return tempRoad;
         }
 
         private static void addRoadToOpenlist(Road tempRoad, Road currentRoad)
