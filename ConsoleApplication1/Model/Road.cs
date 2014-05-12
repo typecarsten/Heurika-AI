@@ -27,16 +27,6 @@ namespace ConsoleApplication1.Model
             this.g = Math.Sqrt(Math.Pow(Endpoint.X - StartingPoint.X, 2) + Math.Pow(Endpoint.Y - StartingPoint.Y, 2));
         }
 
-        public Road(String streetName, Point startingPoint, Point endPoint, Road parentRoad)
-        {
-            this.street_name = streetName;
-            this.StartingPoint = startingPoint;
-            this.Endpoint = endPoint;
-            this.g = Math.Sqrt(Math.Pow(Endpoint.X - StartingPoint.X, 2) + Math.Pow(Endpoint.Y - StartingPoint.Y, 2));
-            this.parentRoad = this;
-
-        }
-
         public Road()
         {
             street_name = null;
@@ -93,7 +83,7 @@ namespace ConsoleApplication1.Model
 
         public override string ToString()
         {
-            return street_name.ToString() + " start: " + startingPoint + " slut: " + endpoint + G;
+            return street_name.ToString() + " start: " + startingPoint + " slut: " + endpoint;
         }
     }
 }
