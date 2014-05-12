@@ -1,196 +1,190 @@
 ﻿using System;
+using System.CodeDom.Compiler;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
+using System.Data.Odbc;
+using System.Diagnostics;
 using System.Drawing;
-using System.Drawing.Text;
 using System.Linq;
-using System.Security.Cryptography.X509Certificates;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 using ConsoleApplication1.Model;
 
 namespace ConsoleApplication1
 {
-    class Program
+    internal class Program
     {
-            private static ObservableCollection<Road> theMap = initiateMap();
-            //Start point and goal point
-            private static Road start_point;
-            private static Road goal;
-            //interesting roads that can be part of the rute
-            private static ObservableCollection<Road> openlist = new ObservableCollection<Road>();
-            private static ObservableCollection<Road> closedList = new ObservableCollection<Road>();
-       
-        static void Main(string[] args)
-        {
-            start_point = new Road("start",new Point(35, 80), new Point(35, 80));
-            goal = new Road("goal",new Point(45,70),new Point(45,70));
-            //Road currentRoad = null;
-            openlist.Add(start_point);
+        private static List<Road> theMap = initiateMap();
 
-            while (true) 
+        private static List<Road> initiateMap()
+        {
+                //Setting up the map
+                var themap = new List<Road>();
+                themap.Add(new Road("Vestervoldgade", new Point(10, 70), new Point(20, 50)));
+                themap.Add(new Road("Vestervoldgade", new Point(20, 50), new Point(10, 70)));
+                themap.Add(new Road("Vestervoldgade", new Point(20, 50), new Point(35, 35)));
+                themap.Add(new Road("Vestervoldgade", new Point(35, 35), new Point(20, 50)));
+                themap.Add(new Road("Studie stræde", new Point(20, 50), new Point(45, 70)));
+                themap.Add(new Road("Studie stræde", new Point(45, 70), new Point(70, 85)));
+                themap.Add(new Road("Skt. Peders Stræde", new Point(10, 70), new Point(35, 80)));
+                themap.Add(new Road("Skt. Peders Stræde", new Point(35, 80), new Point(50, 90)));
+                themap.Add(new Road("Skt. Peders Stræde", new Point(65, 100), new Point(50, 90)));
+                themap.Add(new Road("Vestergade", new Point(55, 55), new Point(35, 35)));
+                themap.Add(new Road("Vestergade", new Point(80, 70), new Point(55, 55)));
+                themap.Add(new Road("Noerregade", new Point(60, 150), new Point(65, 110)));
+                themap.Add(new Road("Noerregade", new Point(65, 110), new Point(65, 100)));
+                themap.Add(new Road("Noerregade", new Point(65, 100), new Point(70, 85)));
+                themap.Add(new Road("Noerregade", new Point(70, 85), new Point(80, 70)));
+                themap.Add(new Road("Larsbjoernsstraede", new Point(45, 70), new Point(55, 55)));
+                themap.Add(new Road("Larsbjoernsstraede", new Point(45, 70), new Point(35, 80)));
+                themap.Add(new Road("Teglgaardsstraede", new Point(25, 100), new Point(35, 80)));
+                themap.Add(new Road("Larslejstraede", new Point(50, 90), new Point(35, 120)));
+                themap.Add(new Road("Noerre voldgade", new Point(10, 70), new Point(25, 100)));
+                themap.Add(new Road("Noerre voldgade", new Point(25, 100), new Point(10, 70)));
+                themap.Add(new Road("Noerre voldgade", new Point(25, 100), new Point(35, 120)));
+                themap.Add(new Road("Noerre voldgade", new Point(35, 120), new Point(25, 100)));
+                themap.Add(new Road("Noerre voldgade", new Point(35, 120), new Point(60, 150)));
+                themap.Add(new Road("Noerre voldgade", new Point(60, 150), new Point(35, 120)));
+
+                return themap;
+        }
+
+        //Start point and goal point
+        private static Road _startPoint;
+        private static Road _goal;
+        //interesting roads that can be part of the rute
+        private static List<Road> openlist = new List<Road>();
+        private static List<Road> closedList = new List<Road>();
+
+        private static void Main(string[] args)
+        {
+            _startPoint = new Road("start", new Point(35, 80), new Point(35, 80));
+            _goal = new Road("goal", new Point(45, 70), new Point(45, 70));
+            Road currentRoad = null;
+            openlist.Add(_startPoint);
+            theMap.Add(_goal);
+            bool pathNotFound = true;
+
+            while (true)
             {
-                Road currentRoad = openlist.First();
-                openlist.Remove(currentRoad);
-                closedList.Remove(currentRoad);
-                foreach (Road road in theMap)
+                while (pathNotFound)
                 {
-                    if(currentRoad.Endpoint == road.StartingPoint)
+                    //Pick the first element gives us the road with the smallest F cost
+                    //sorts the openlist before next itteration
+                    openlist = openlist.OrderBy(r => r.F).ToList();
+                    currentRoad = openlist.First();
+                    openlist.Remove(currentRoad);
+                    closedList.Add(currentRoad);
+                    List<Road> tempOpenList = new List<Road>(openlist);
+
+                    //Each road that we can go ot from the current square are added to the walkAbleRoad list.
+                    List<Road> walkAbleRoads = new List<Road>();
+                    foreach (Road road in theMap)
                     {
-                        foreach (Road openListRoad in openlist)
+                        if (road.StartingPoint == currentRoad.Endpoint)
                         {
-                            if (road.StartingPoint == openListRoad.StartingPoint && road.Endpoint == openListRoad.Endpoint)
+                            walkAbleRoads.Add(road);
+                        }
+                    }
+                    //Check if some of the walkable roads are on the openlist otherwise add them and record F,G and H cost
+                    foreach (Road walkAbleRoad in walkAbleRoads)
+                    {
+                        if (closedList.Contains(walkAbleRoad))
+                        {
+                        }
+                        else
+                        {
+                            if (tempOpenList.Count != 0)
                             {
-                                if (openListRoad.G > road.G)
+                                if (checkWithOpenlist(walkAbleRoad) == null)
                                 {
-                                    openListRoad.ParentRoad = currentRoad;
-                                    calculateGHF(openListRoad);
-                                    //resrot the openlist
+                                    AddToOpenlist(walkAbleRoad, currentRoad);
+                                }
+                                else
+                                {
+                                    Road openRoad = checkWithOpenlist(walkAbleRoad);
+                                    if (walkAbleRoad.G < openRoad.G)
+                                    {
+                                        openlist.Remove(openRoad);
+                                        AddToOpenlist(walkAbleRoad, currentRoad);
+                                    }
                                 }
                             }
-                             else
-                             {
-                                road.ParentRoad = currentRoad;
-                                Road tempRoad = calculateGHF(currentRoad);
-                                road.G = tempRoad.G;
-                                road.H = tempRoad.H;
-                                road.F = tempRoad.F;
-                                openlist.Add(road);
-                                //resort list
+                            else
+                            {
+                                AddToOpenlist(walkAbleRoad, currentRoad);
+                            }
                         }
+                    }
+                    //error in checking if goal is in closed list
+                    if (closedListContains(_goal) != null)
+                    {
+                        Road road = closedListContains(_goal);
+                        Console.WriteLine(road);
+                        while (road.ParentRoad != null)
+                        {
+                            Console.WriteLine(road.ParentRoad);
+                            road = road.ParentRoad;
                         }
-                        
+                        pathNotFound = false;
                     }
-                }
-            }
 
-
-
-            foreach (Road road in theMap)
-            {
-                if (start_point.Endpoint == road.StartingPoint)
-                {
-                    road.ParentRoad = start_point;
-                }
-            }
-            openlist.Clear();
-            closedList.Add(start_point);
-
-            //The A* algorithm
-            while (currentRoad.StreetName != "goal")
-            {
-                //sort openList by f cost
-                currentRoad = openlist.First();
-                openlist.Remove(currentRoad);
-                closedList.Add(currentRoad);
-                exploreMap(currentRoad);
-                openlist.Remove(currentRoad);
-
-
-            }
-
-
-        }
-
-        //Calculates the F-cost
-        private static double fCost(Road currentRoad)
-        {
-                return currentRoad.F = currentRoad.G + heuristic(currentRoad, goal);
-        }
-        
-        //explore new roads
-        private static void exploreMap(Road currentRoad)
-        {
-            foreach (var road in theMap)
-            {
-                if (road.StartingPoint == currentRoad.Endpoint)
-                {
-                    Road tempRoad = new Road(road.StreetName,road.StartingPoint,road.Endpoint);
-                    tempRoad.ParentRoad = currentRoad;
-                    calculateGHF(currentRoad, tempRoad);
-                    addRoadToOpenlist(tempRoad, currentRoad);
-                }
-            }
-        }
-
-        private static Road calculateGHF(Road currentRoad)
-        {
-            Road tempRoad = new Road();
-            tempRoad.H = heuristic(currentRoad, goal);
-            tempRoad.G = currentRoad.ParentRoad.G + roadcost(currentRoad);
-            tempRoad.F = fCost(tempRoad);
-            return tempRoad;
-        }
-
-        private static void addRoadToOpenlist(Road tempRoad, Road currentRoad)
-        {
-            foreach (var road in openlist)
-            {
-                if (tempRoad == road)
-                {
-                    if (tempRoad.G > road.G)
+                    if (openlist.Count == 0)
                     {
+                        Console.Write("Path not found");
+                        pathNotFound = false;
+                    }
 
-                    }
-                    else
-                    {
-                        tempRoad.ParentRoad = currentRoad;
-                        calculateGHF(currentRoad,tempRoad);
-                        openlist.Add(tempRoad);
-                        openlist.Remove(road);
-                    }
-                }
+                }  
             }
         }
 
-        //straight line heuristic (start to start point)
-        private static double heuristic (Road currentRoad, Road goal)
+        private static Road closedListContains(Road goal)
         {
-            double straightLineDist = Math.Sqrt(Math.Pow(goal.Endpoint.X - currentRoad.StartingPoint.X, 2)+Math.Pow(goal.Endpoint.Y - currentRoad.StartingPoint.Y,2));
-            double currentRoadCost = roadcost(currentRoad);
-            return currentRoadCost + straightLineDist;
-
+            foreach (Road road in closedList)
+            {
+                if (road.Endpoint == goal.Endpoint && road.StartingPoint == goal.StartingPoint)
+                {
+                    return road;
+                }
+            }
+            return null;
         }
 
-        //Calculates the distance of a road
-        private static double roadcost(Road currentRoad)
+        private static Road checkWithOpenlist(Road road)
         {
-            double cost = Math.Sqrt(Math.Pow(currentRoad.Endpoint.X - currentRoad.StartingPoint.X, 2) + Math.Pow(currentRoad.Endpoint.Y - currentRoad.StartingPoint.Y, 2));
-            return cost;
+            foreach (Road openRoad in openlist)
+            {
+                if (openRoad.Endpoint == road.Endpoint && openRoad.StartingPoint == road.StartingPoint)
+                {
+                    return openRoad;
+                }
+            }
+            return null;
         }
 
-        private static ObservableCollection<Road> initiateMap()
+        // Method to add a walkable road to the open list
+        private static void AddToOpenlist(Road walkAbleRoad, Road currentRoad)
         {
-            //Setting up the map
-            var themap = new ObservableCollection<Road>();
-            themap.Add(new Road("Vestervoldgade", new Point(10, 70), new Point(20, 50)));
-            themap.Add(new Road("Vestervoldgade", new Point(20, 50), new Point(10, 70)));
-            themap.Add(new Road("Vestervoldgade", new Point(20, 50), new Point(35, 35)));
-            themap.Add(new Road("Vestervoldgade", new Point(35, 35), new Point(20, 50)));
-            themap.Add(new Road("Studie stræde", new Point(20, 50), new Point(45, 70)));
-            themap.Add(new Road("Studie stræde", new Point(45, 70), new Point(70, 85)));
-            themap.Add(new Road("Skt. Peders Stræde", new Point(10, 70), new Point(35, 80)));
-            themap.Add(new Road("Skt. Peders Stræde", new Point(35, 80), new Point(50, 90)));
-            themap.Add(new Road("Skt. Peders Stræde", new Point(65, 100), new Point(50, 90)));
-            themap.Add(new Road("Vestergade", new Point(55, 55), new Point(35, 35)));
-            themap.Add(new Road("Vestergade", new Point(80, 70), new Point(55, 55)));
-            themap.Add(new Road("Noerregade", new Point(60, 150), new Point(65, 110)));
-            themap.Add(new Road("Noerregade", new Point(65, 110), new Point(65, 100)));
-            themap.Add(new Road("Noerregade", new Point(65, 100), new Point(70, 85)));
-            themap.Add(new Road("Noerregade", new Point(70, 85), new Point(80, 70)));
-            themap.Add(new Road("Larsbjoernsstraede", new Point(45, 70), new Point(55, 55)));
-            themap.Add(new Road("Larsbjoernsstraede", new Point(45, 70), new Point(35, 80)));
-            themap.Add(new Road("Teglgaardsstraede", new Point(25, 100), new Point(35, 80)));
-            themap.Add(new Road("Larslejstraede", new Point(50, 90), new Point(35, 120)));
-            themap.Add(new Road("Noerre voldgade", new Point(10, 70), new Point(25, 100)));
-            themap.Add(new Road("Noerre voldgade", new Point(25, 100), new Point(10, 70)));
-            themap.Add(new Road("Noerre voldgade", new Point(25, 100), new Point(35, 120)));
-            themap.Add(new Road("Noerre voldgade", new Point(35, 120), new Point(25, 100)));
-            themap.Add(new Road("Noerre voldgade", new Point(35, 120), new Point(60, 150)));
-            themap.Add(new Road("Noerre voldgade", new Point(60, 150), new Point(35, 120)));
+            Road tempWalkAbleRoad = new Road();
+            tempWalkAbleRoad.Endpoint = walkAbleRoad.Endpoint;
+            tempWalkAbleRoad.StartingPoint = walkAbleRoad.StartingPoint;
+            tempWalkAbleRoad.StreetName = walkAbleRoad.StreetName;
+            tempWalkAbleRoad.ParentRoad = currentRoad;
+            tempWalkAbleRoad.G = tempWalkAbleRoad.ParentRoad.G +
+                                 StraightLineHeuristic(tempWalkAbleRoad.StartingPoint, tempWalkAbleRoad.Endpoint);
+            tempWalkAbleRoad.H = StraightLineHeuristic(tempWalkAbleRoad, _goal);
+            tempWalkAbleRoad.F = tempWalkAbleRoad.G + tempWalkAbleRoad.H;
+            openlist.Add(tempWalkAbleRoad);
+        }
 
-            return themap;
+        // StraightLineDistance end to end
+        private static double StraightLineHeuristic(Road road, Road goal)
+        {
+            return Math.Sqrt(Math.Pow(goal.Endpoint.X - road.Endpoint.X, 2) + Math.Pow(goal.Endpoint.Y - road.Endpoint.Y, 2));
+        }
+
+        //Point to Point straight ligne distance
+        private static double StraightLineHeuristic(Point startPoint, Point endPoint)
+        {
+            return Math.Sqrt(Math.Pow(endPoint.X - startPoint.X, 2) + Math.Pow(endPoint.Y - startPoint.Y, 2));
         }
     }
 }

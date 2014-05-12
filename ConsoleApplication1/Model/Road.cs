@@ -19,11 +19,22 @@ namespace ConsoleApplication1.Model
         private Point startingPoint;
         private Point endpoint;
 
-        public Road(String street_name, Point startingPoint, Point endPoint)
+        public Road(String streetName, Point startingPoint, Point endPoint)
         {
-            this.StreetName = street_name;
+            this.street_name = streetName;
             this.StartingPoint = startingPoint;
             this.Endpoint = endPoint;
+            this.g = Math.Sqrt(Math.Pow(Endpoint.X - StartingPoint.X, 2) + Math.Pow(Endpoint.Y - StartingPoint.Y, 2));
+        }
+
+        public Road(String streetName, Point startingPoint, Point endPoint, Road parentRoad)
+        {
+            this.street_name = streetName;
+            this.StartingPoint = startingPoint;
+            this.Endpoint = endPoint;
+            this.g = Math.Sqrt(Math.Pow(Endpoint.X - StartingPoint.X, 2) + Math.Pow(Endpoint.Y - StartingPoint.Y, 2));
+            this.parentRoad = this;
+
         }
 
         public Road()
@@ -78,6 +89,11 @@ namespace ConsoleApplication1.Model
         {
             get { return parentRoad; }
             set { parentRoad = value; }
+        }
+
+        public override string ToString()
+        {
+            return street_name.ToString() + " start: " + startingPoint + " slut: " + endpoint + G;
         }
     }
 }
